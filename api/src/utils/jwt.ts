@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -14,30 +14,38 @@ const publicKey = Buffer.from(
   'base64'
 ).toString('utf-8');
 
+if (!privateKey || !publicKey) {
+  throw new Error('Las llaves JWT no están configuradas correctamente.');
+}
+
 export interface TokenPayload {
   uid: string;
   email: string;
   rol: string;
 }
 
+const accessTokenOptions: SignOptions = {
+  algorithm: 'RS256',
+  expiresIn: (process.env.JWT_ACCESS_EXPIRES_IN || '15m') as SignOptions['expiresIn'],
+};
+
+const refreshTokenOptions: SignOptions = {
+  algorithm: 'RS256',
+  expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as SignOptions['expiresIn'],
+};
+
 /**
- * Firma un Access Token con la clave PRIVADA usando el algoritmo RS256
+ * Firma un Access Token con la clave PRIVADA usando RS256
  */
 export function signAccessToken(payload: TokenPayload): string {
-  return jwt.sign(payload, privateKey, {
-    algorithm: 'RS256',
-    expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
-  });
+  return jwt.sign(payload, privateKey, accessTokenOptions);
 }
 
 /**
  * Firma un Refresh Token con la clave PRIVADA
  */
 export function signRefreshToken(payload: { uid: string }): string {
-  return jwt.sign(payload, privateKey, {
-    algorithm: 'RS256',
-    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
-  });
+  return jwt.sign(payload, privateKey, refreshTokenOptions);
 }
 
 /**
