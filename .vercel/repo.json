@@ -1,0 +1,11 @@
+{
+  "remoteName": "origin",
+  "projects": [
+    {
+      "id": "prj_xWsoBdtvAKesDbjrMQSqrgXkbaUS",
+      "name": "rubastudioapi",
+      "directory": "api",
+      "orgId": "team_kNRSjoL54vDwcCvGecSW6Ydk"
+    }
+  ]
+}

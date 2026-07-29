@@ -1,1 +1,5 @@
-.vercel
+.env
+serviceAccountKey.json
+*.key
+node_modules/
+dist/
