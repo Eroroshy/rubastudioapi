@@ -1,20 +1,20 @@
 # 🔒 RubaStudio Auth API
 
-[![Vercel](https://img.shields.io/badge/Vercel-Deployed-000000?style=for-the-badge\&logo=vercel\&logoColor=white)](https://vercel.com/)
+[![Vercel](https://img.shields.io/badge/Vercel-Deployed-000000?style=for-the-badge\&logo=vercel\&logoColor=white)](https://rubastudioapi-eroroshy-eroroshy.vercel.app)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge\&logo=typescript\&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge\&logo=nodedotjs\&logoColor=white)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge\&logo=express\&logoColor=white)](https://expressjs.com/)
 
-API Serverless desarrollada en **TypeScript + Express** para la gestión de autenticación de **RubaStudio**.
+API Serverless desarrollada en **TypeScript + Express** para la gestión de autenticación y sesiones de **RubaStudio**.
 
-Implementa un sistema seguro de autenticación basado en **JWT firmado mediante RSA (RS256)**, gestión de sesiones con cookies `httpOnly`, validación de datos con **Zod** e integración con servicios externos.
+Implementa un sistema completo de autenticación utilizando **JWT con firma RSA RS256**, manejo seguro de sesiones mediante cookies `httpOnly`, validación de datos con **Zod** y una arquitectura modular preparada para despliegue en la nube mediante **Vercel Serverless Functions**.
 
 ---
 
-## 🌐 URL Base de Producción
+# 🌐 URL de Producción
 
 ```
-https://rubastudioapi-a6mel4g5p-eroroshy.vercel.app
+https://rubastudioapi-eroroshy-eroroshy.vercel.app
 ```
 
 ---
@@ -22,35 +22,36 @@ https://rubastudioapi-a6mel4g5p-eroroshy.vercel.app
 # 📌 Tabla de Contenidos
 
 * [Características](#-características)
-* [Arquitectura del Proyecto](#-arquitectura-del-proyecto)
+* [Arquitectura](#-arquitectura)
 * [Estructura del Proyecto](#-estructura-del-proyecto)
 * [Endpoints](#-endpoints)
 * [Instalación Local](#-instalación-local)
 * [Variables de Entorno](#-variables-de-entorno)
 * [Despliegue](#-despliegue)
 * [Seguridad](#-seguridad)
+* [Tecnologías](#-tecnologías)
 
 ---
 
 # 🚀 Características
 
-* ⚡ **Arquitectura Serverless:** desplegada sobre infraestructura Vercel.
-* 🔐 **Autenticación segura:** implementación de JWT utilizando algoritmo RSA RS256.
-* 🔑 **Firma asimétrica:** uso de llave privada para firmar tokens y llave pública para validación.
-* 🍪 **Gestión de sesiones:** soporte para cookies `httpOnly` mediante refresh tokens.
-* 🔄 **Renovación de sesión:** generación de nuevos Access Tokens mediante Refresh Tokens.
-* 🛡️ **Validación con Zod:** validación estricta de datos antes de ejecutar lógica de negocio.
-* 📘 **TypeScript Strict Mode:** código completamente tipado.
-* 🧩 **Arquitectura modular:** separación por módulos, servicios, controladores y middlewares.
+* ⚡ **Arquitectura Serverless:** desplegada utilizando Vercel Functions.
+* 🔐 **Autenticación basada en JWT:** tokens firmados mediante RSA con algoritmo RS256.
+* 🔑 **Llaves asimétricas:** uso de llave privada para firma y llave pública para validación.
+* 🍪 **Sesiones seguras:** refresh tokens almacenados mediante cookies `httpOnly`.
+* 🔄 **Renovación silenciosa:** generación de nuevos Access Tokens mediante Refresh Tokens.
+* 🛡️ **Validación con Zod:** rechazo de información inválida antes de ejecutar la lógica principal.
+* 📦 **Arquitectura modular:** separación entre rutas, controladores, servicios y utilidades.
+* 📘 **TypeScript Strict Mode:** tipado fuerte para mayor seguridad y mantenibilidad.
 
 ---
 
-# 🏗️ Arquitectura del Proyecto
+# 🏗️ Arquitectura
 
 La API sigue una arquitectura modular basada en capas:
 
 ```
-Request
+Cliente
    |
    ↓
 Express Router
@@ -62,10 +63,29 @@ Controller
 Service
    |
    ↓
-External Services / JWT
+JWT / Servicios externos
    |
    ↓
-Response
+Respuesta HTTP
+```
+
+Flujo de autenticación:
+
+```
+Usuario
+   |
+   | email + password
+   ↓
+Auth Controller
+   |
+   ↓
+Validación Zod
+   |
+   ↓
+Generación JWT RS256
+   |
+   ↓
+Access Token + Refresh Cookie
 ```
 
 ---
@@ -81,7 +101,7 @@ RubaStudioAPI/
 │   │   └── Configuración de servicios externos
 │   │
 │   ├── middlewares/
-│   │   └── Validación y autenticación
+│   │   └── Middleware de autenticación y validación
 │   │
 │   ├── modules/
 │   │   └── auth/
@@ -91,12 +111,13 @@ RubaStudioAPI/
 │   │       └── auth.service.ts
 │   │
 │   ├── utils/
-│   │   └── Utilidades JWT
+│   │   └── Funciones auxiliares JWT
 │   │
 │   └── server.ts
 │
-├── index.ts                # Entrada Serverless para Vercel
+├── index.ts              # Entrada Serverless para Vercel
 ├── package.json
+├── package-lock.json
 ├── tsconfig.json
 ├── vercel.json
 ├── .env.example
@@ -123,7 +144,7 @@ Todos los endpoints utilizan el prefijo:
 /api/v1/auth/login
 ```
 
-### Body
+### Request
 
 ```json
 {
@@ -141,7 +162,7 @@ Todos los endpoints utilizan el prefijo:
   "data": {
     "accessToken": "JWT_TOKEN",
     "usuario": {
-      "uid": "id_usuario",
+      "uid": "usuario_id",
       "email": "usuario@correo.com",
       "rol": "admin"
     }
@@ -159,11 +180,22 @@ Todos los endpoints utilizan el prefijo:
 /api/v1/auth/refresh
 ```
 
-Obtiene un nuevo Access Token utilizando la cookie de sesión.
+Utiliza la cookie `httpOnly` del Refresh Token para generar un nuevo Access Token.
+
+Respuesta:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "accessToken": "JWT_TOKEN"
+  }
+}
+```
 
 ---
 
-## 👤 Perfil autenticado
+## 👤 Obtener perfil
 
 ### GET
 
@@ -198,7 +230,16 @@ Respuesta:
 /api/v1/auth/logout
 ```
 
-Cierra la sesión eliminando la cookie de refresh token.
+Elimina la sesión activa y limpia la cookie del Refresh Token.
+
+Respuesta:
+
+```json
+{
+  "ok": true,
+  "message": "Sesión cerrada correctamente"
+}
+```
 
 ---
 
@@ -228,13 +269,13 @@ npm install
 
 ## 3. Configurar variables de entorno
 
-Crear archivo:
+Crear:
 
 ```
 .env
 ```
 
-basándose en:
+basado en:
 
 ```
 .env.example
@@ -251,7 +292,7 @@ JWT_REFRESH_EXPIRES_IN=7d
 
 ---
 
-## 4. Ejecutar entorno local
+## 4. Ejecutar en desarrollo
 
 ```bash
 npm run dev
@@ -273,15 +314,27 @@ http://localhost:4000/health
 
 # 🚀 Despliegue
 
-El proyecto está preparado para ejecutarse como Serverless Function en Vercel.
+El proyecto está configurado para ejecutarse en Vercel mediante una función Serverless.
 
-Despliegue mediante CLI:
+Configuración:
+
+```
+index.ts
+      |
+      ↓
+src/server.ts
+      |
+      ↓
+Express Application
+```
+
+Despliegue manual:
 
 ```bash
 vercel --prod
 ```
 
-o mediante integración con GitHub.
+También puede desplegarse automáticamente mediante integración con GitHub.
 
 Las variables sensibles deben configurarse desde:
 
@@ -295,39 +348,48 @@ Vercel Dashboard
 
 # 🔐 Seguridad
 
-Medidas implementadas:
+Implementaciones de seguridad:
 
-* Las llaves RSA privadas y públicas no deben almacenarse directamente en código.
-* Uso de variables de entorno para secretos.
-* JWT firmado mediante algoritmo RS256.
-* Validación de payloads utilizando Zod.
-* Uso de cookies `httpOnly` para refresh tokens.
-* Separación entre lógica de autenticación, rutas y servicios.
+* JWT firmado mediante algoritmo RSA RS256.
+* Separación entre llave privada y llave pública.
+* Variables sensibles manejadas mediante entorno.
+* Cookies `httpOnly` para Refresh Tokens.
+* Validación de datos con Zod.
+* Middleware de protección de rutas.
+* Separación de responsabilidades mediante arquitectura modular.
 
-Archivos sensibles excluidos:
+Archivos excluidos del repositorio:
 
 ```
 .env
 *.key
 serviceAccountKey.json
+node_modules/
+dist/
 ```
 
 ---
 
-# 🛠️ Tecnologías Utilizadas
+# 🛠️ Tecnologías
 
-| Tecnología     | Uso                |
-| -------------- | ------------------ |
-| TypeScript     | Lenguaje principal |
-| Node.js        | Runtime            |
-| Express        | Framework API      |
-| Vercel         | Hosting Serverless |
-| JWT            | Autenticación      |
-| RSA RS256      | Firma de tokens    |
-| Zod            | Validación         |
-| Firebase Admin | Servicios externos |
+| Tecnología     | Uso                  |
+| -------------- | -------------------- |
+| TypeScript     | Lenguaje principal   |
+| Node.js        | Runtime              |
+| Express        | Framework HTTP       |
+| Vercel         | Hosting Serverless   |
+| JWT            | Autenticación        |
+| RSA RS256      | Firma de tokens      |
+| Zod            | Validación           |
+| Firebase Admin | Servicios externos   |
+| GitHub         | Control de versiones |
 
 ---
 
+# 👨‍💻 Autor
+
 Desarrollado por **Erick Vargas**
-GitHub: https://github.com/Eroroshy
+
+GitHub:
+
+https://github.com/Eroroshy
